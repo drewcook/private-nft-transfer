@@ -1,8 +1,9 @@
 'use client'
 import { Button, Grid, Paper, Typography } from '@mui/material'
+import { signTypedData } from '@wagmi/core'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useState } from 'react'
-import { useAccount } from 'wagmi'
+import { sepolia, useAccount } from 'wagmi'
 
 import { useContract } from '@/components/ContractProvider'
 
@@ -19,28 +20,74 @@ const styles = {
 }
 
 const Dashboard: React.FC = () => {
+	const TOKEN_ID = 1
+	const APPROVED_BUYER = '0x847F115314b635F58A53471768D14E67e587cb56'
 	// State
 	const [nftName, setNftName] = useState<string>('')
 	const [tokenUri, setTokenUri] = useState<string>('')
 
 	// Hooks
 	const { nft, executeContractRead, executeContractWrite } = useContract()
-	const { isConnected } = useAccount()
+	const { isConnected, address } = useAccount()
 	const { open } = useWeb3Modal()
 
 	// Handlers
-	const handleMint = async () => {
+	const handleSell = async () => {
 		try {
 			if (!isConnected) return open()
 
+			// 1. Construct typed data
+			// All properties on a domain are optional
+			const domain = {
+				name: 'PrivateTransfer',
+				version: '1',
+				chainId: sepolia.id,
+				verifyingContract: nft.address,
+			} as const
+			const types = {
+				Transfer: [
+					{ name: 'tokenId', type: 'uint256' },
+					{ name: 'receiver', type: 'address' },
+				],
+			} as const
+			const message = {
+				tokenId: BigInt(TOKEN_ID),
+				receiver: APPROVED_BUYER,
+			} as const
+
+			// 2. Sign typed data
+			const signature = await signTypedData({
+				domain,
+				message,
+				primaryType: 'Transfer',
+				types,
+			})
+
+			// 3. Approve contract as operator for tokenID 1
 			const [result, hash] = await executeContractWrite({
 				address: nft.address,
 				abi: nft.abi,
-				functionName: 'mint',
-				args: ['exampleTokenURI'],
+				functionName: 'approve',
+				args: [APPROVED_BUYER, TOKEN_ID],
 			})
-
 			console.log({ result, hash })
+
+			// 4. Store a new mongo record
+			const res = await fetch('http://localhost:3000/api/', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					collectionAddress: nft.address,
+					tokenId: TOKEN_ID,
+					sellerAddress: address,
+					approvedBuyerAddress: APPROVED_BUYER,
+					signature,
+				}),
+			})
+			const { data } = await res.json()
+			console.log({ data })
 		} catch (e) {
 			console.error(e)
 		}
@@ -79,8 +126,8 @@ const Dashboard: React.FC = () => {
 						<Typography variant="h4" gutterBottom>
 							Your Dashboard
 						</Typography>
-						<Button onClick={handleMint} variant="outlined" sx={styles.button}>
-							Mint NFT
+						<Button onClick={handleSell} variant="outlined" sx={styles.button}>
+							Sell NFT
 						</Button>
 						{nft.address && (
 							<>
