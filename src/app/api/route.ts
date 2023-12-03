@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 		await connectMongo()
 
 		// Generate the URL
-		const generatedBuyUrl = `http://localhost:3000/${approvedBuyerAddress}/${collectionAddress}/${tokenId}`
+		const generatedBuyUrl = `${process.env.NEXT_PUBLIC_CLIENT_URL}/${approvedBuyerAddress}/${collectionAddress}/${tokenId}`
 
 		// Create new model
 		const model = new TokenTransfer({
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
 			generatedBuyUrl,
 			signature,
 		})
-		const resp = await model.save()
+		await model.save()
 		// Return a 201 with the generated url
 		return getSuccessResponse(generatedBuyUrl, 201)
 	} catch (error: any) {

@@ -19,12 +19,15 @@ const BuyNft = ({ contractAddress, tokenId }: BuyNftProps): JSX.Element => {
 		if (!isConnected) return open()
 
 		// 1. Fetch from mongo
-		const resp = await fetch(`http://localhost:3000/api?contractAddress=${contractAddress}&tokenId=${tokenId}`, {
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json',
+		const resp = await fetch(
+			`${process.env.NEXT_PUBLIC_CLIENT_URL}/api?contractAddress=${contractAddress}&tokenId=${tokenId}`,
+			{
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+				},
 			},
-		})
+		)
 		const { data } = await resp.json()
 
 		// 3. Execute contract write

@@ -16,7 +16,9 @@ const styles = {
 	},
 }
 
-const DefaultPage = ({ params }) => {
+type BuyNftPageProps = { params: { contractAddress: string; tokenId: string } }
+
+const BuyNftPage = ({ params }: BuyNftPageProps) => {
 	return (
 		<Paper sx={styles.paper}>
 			<Typography variant="h4" gutterBottom>
@@ -27,4 +29,4 @@ const DefaultPage = ({ params }) => {
 	)
 }
 
-export default DefaultPage
+export default BuyNftPage
